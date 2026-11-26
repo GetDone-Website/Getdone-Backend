@@ -9,10 +9,11 @@ class AnalyticsController extends ApiController
     private function metrics(Request $request): array
     {
         $tasks = $request->user()->tasks();
-        $total = (clone $tasks)->count();
-        $completed = (clone $tasks)->where('status','completed')->count();
+        $agg = $tasks->selectRaw("COUNT(*) AS total, COUNT(*) FILTER (WHERE status = 'completed') AS completed, COUNT(*) FILTER (WHERE status != 'completed' AND due_date <= ?) AS urgent", [now()->addDay()])->first();
+        $total = (int) $agg->total;
+        $completed = (int) $agg->completed;
         $active = $total - $completed;
-        $urgent = (clone $tasks)->where('status', '!=', 'completed')->where('due_date', '<=', now()->addDay())->count();
+        $urgent = (int) $agg->urgent;
         $focusMinutes = $request->user()->focusSessions()->sum('duration_minutes');
         return compact('total','completed','active','urgent','focusMinutes') + ['completion_rate' => $total ? round($completed / $total * 100, 1) : 0];
     }
@@ -24,7 +25,7 @@ class AnalyticsController extends ApiController
     {
         $counts = $request->user()->tasks()->select('course_id', DB::raw('COUNT(*) as task_count'))->groupBy('course_id')->get();
         return $this->ok(['metrics' => $this->metrics($request), 'workload' => $counts,
-            'focus_sessions' => $request->user()->focusSessions()->orderByDesc('completed_at')->limit(100)->get()]);
+            'focus_sessions' => $request->user()->focusSessions()->where('completed_at', '>=', now()->subDays(35))->orderByDesc('completed_at')->limit(1000)->get()]);
     }
     public function storeFocus(Request $request)
     {

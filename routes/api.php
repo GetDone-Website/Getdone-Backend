@@ -27,6 +27,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/avatar', [UserController::class, 'uploadAvatar']);
     Route::post('/users/onboarding', [UserController::class, 'onboarding']);
     Route::apiResource('/courses', CourseController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
+    Route::post('/courses/{course}/contract', [CourseController::class, 'uploadContract']);
+    Route::get('/courses/{course}/contract', [CourseController::class, 'downloadContract']);
+    Route::delete('/courses/{course}/contract', [CourseController::class, 'deleteContract']);
     Route::apiResource('/tasks', TaskController::class)->only(['index', 'store', 'show', 'update', 'destroy']);
     Route::get('/dashboard/summary', [AnalyticsController::class, 'dashboard']);
     Route::get('/analytics', [AnalyticsController::class, 'index']);
